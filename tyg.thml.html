@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ApuestaLoQueSea · v2 (FIXED)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* --- Notas ---
+       1) Funciona sin Firebase (modo local con localStorage) y con Firebase si defines window.__firebase_config.
+       2) Para usar Firebase: habilita Auth anónima y Firestore. Luego define:
+            <script>window.__app_id = 'tu-app-id';
+                    window.__firebase_config = JSON.stringify({ apiKey:'...', authDomain:'...', projectId:'...', storageBucket:'...', messagingSenderId:'...', appId:'...' });</script>
+          antes de este archivo o incrústalo arriba.  
+       3) En modo local todo persiste en localStorage (ideal para pruebas sin backend).
+    */
+    :root { --brand1:#4f46e5; --brand2:#7c3aed; }
+    body{ font-family:'Inter',sans-serif; background:#f7f8fc; }
+    .gradient-bg{ background:linear-gradient(135deg,var(--brand1) 0%,var(--brand2) 100%); }
+    .card-shadow{ box-shadow:0 12px 24px rgba(17,24,39,.08); }
+    .modal-enter{ opacity:0; transform:translateY(16px) scale(.98); }
+    .modal-enter-active{ opacity:1; transform:none; transition:all 300ms cubic-bezier(.4,0,.2,1); }
+    .modal-leave-active{ opacity:0; transform:translateY(16px) scale(.98); transition:all 260ms cubic-bezier(.4,0,.2,1); }
+    .skeleton{ position:relative; overflow:hidden; background:#e5e7eb; }
+    .skeleton::after{ content:""; position:absolute; inset:0; transform:translateX(-100%); background:linear-gradient(90deg,transparent,#f3f4f6,transparent); animation:shimmer 1.2s infinite; }
+    @keyframes shimmer{ 100%{ transform:translateX(100%);} }
+    .badge{ border:1px solid rgba(99,102,241,.25); }
+  </style>
+</head>
+<body class="text-gray-800">
+  <a class="sr-only focus:not-sr-only absolute left-2 top-2 bg-white px-3 py-2 rounded shadow" href="#main">Saltar al contenido</a>
+
+  <div id="app" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    <!-- Header -->
+    <header class="mb-8">
+      <div class="text-center">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight">
+          Apuesta<span class="text-indigo-600">LoQueSea</span> <span class="align-top text-xs font-mono text-gray-400">v2</span>
+        </h1>
+        <p class="mt-2 text-lg text-gray-500">Crea, comparte y vota predicciones medibles. Sin odio, sin doxxing, sin violencia.</p>
+      </div>
+
+      <div class="mt-6 p-4 bg-white rounded-xl card-shadow flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="text-center sm:text-left">
+          <p class="text-sm text-gray-500">Tu ID de Apostador</p>
+          <div class="flex items-center gap-2">
+            <span id="userId" class="font-mono text-indigo-700 bg-indigo-50 px-2 py-1 rounded">Cargando…</span>
+            <button id="copyUserId" class="p-2 text-gray-500 hover:bg-gray-100 rounded" title="Copiar ID" aria-label="Copiar ID">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button id="openModalBtn" class="w-full sm:w-auto gradient-bg text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition">
+            + Crear apuesta
+          </button>
+          <button id="policyBtn" class="w-full sm:w-auto bg-white text-gray-700 font-medium py-3 px-4 rounded-lg border hover:bg-gray-50">
+            Reglas
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Filtros y estado -->
+    <section class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-center gap-2 text-sm">
+        <span class="px-2 py-1 rounded badge text-indigo-700 bg-indigo-50">Tiempo real</span>
+        <span id="connStatus" class="px-2 py-1 rounded border text-gray-600 bg-gray-50">Sincronizando…</span>
+      </div>
+      <div class="flex gap-2">
+        <button id="showOpen" class="text-sm px-3 py-2 rounded bg-indigo-600 text-white">Abiertas</button>
+        <button id="showClosed" class="text-sm px-3 py-2 rounded bg-gray-200 text-gray-700">Cerradas</button>
+      </div>
+    </section>
+
+    <!-- Contenedor de Apuestas -->
+    <main id="main" class="space-y-6" aria-live="polite">
+      <div id="loader" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl card-shadow p-6">
+          <div class="skeleton h-6 w-2/3 mb-3 rounded"></div>
+          <div class="skeleton h-4 w-1/3 mb-5 rounded"></div>
+          <div class="skeleton h-2 w-full mb-2 rounded"></div>
+          <div class="skeleton h-2 w-5/6 mb-2 rounded"></div>
+          <div class="skeleton h-2 w-4/6 rounded"></div>
+        </div>
+        <div class="bg-white rounded-xl card-shadow p-6">
+          <div class="skeleton h-6 w-2/3 mb-3 rounded"></div>
+          <div class="skeleton h-4 w-1/3 mb-5 rounded"></div>
+          <div class="skeleton h-2 w-full mb-2 rounded"></div>
+          <div class="skeleton h-2 w-5/6 mb-2 rounded"></div>
+          <div class="skeleton h-2 w-4/6 rounded"></div>
+        </div>
+        <div class="bg-white rounded-xl card-shadow p-6">
+          <div class="skeleton h-6 w-2/3 mb-3 rounded"></div>
+          <div class="skeleton h-4 w-1/3 mb-5 rounded"></div>
+          <div class="skeleton h-2 w-full mb-2 rounded"></div>
+          <div class="skeleton h-2 w-5/6 mb-2 rounded"></div>
+          <div class="skeleton h-2 w-4/6 rounded"></div>
+        </div>
+      </div>
+      <div id="emptyState" class="hidden text-center py-12 px-4 bg-white rounded-xl card-shadow">
+        <h3 class="text-lg font-semibold text-gray-900">Sin apuestas por ahora</h3>
+        <p class="mt-1 text-sm text-gray-500">Sé la primera persona en crear un desafío verificable.</p>
+      </div>
+      <div id="betsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </main>
+  </div>
+
+  <!-- Modal: Reglas -->
+  <div id="policyModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="fixed inset-0 bg-black/60" data-close="policy"></div>
+    <div class="modal-enter bg-white rounded-xl shadow-2xl w/full max-w-xl z-10 overflow-hidden">
+      <div class="p-6">
+        <h2 class="text-2xl font-bold mb-2">Reglas de publicación</h2>
+        <p class="text-sm text-gray-600 mb-4">Apuestas permitidas: temas impersonales y medibles (clima, deporte, cultura, tecnología). Prohibido: odio, violencia, doxxing, difamación, datos sensibles o sobre personas privadas.</p>
+        <ul class="text-sm text-gray-700 list-disc pl-5 space-y-1">
+          <li>Debes indicar <strong>criterio de resolución</strong> y una <strong>fuente verificable</strong>.</li>
+          <li>Las apuestas se <strong>cierran</strong> automáticamente en su fecha límite.</li>
+          <li>Se anula cualquier apuesta que incumpla estas reglas.</li>
+        </ul>
+        <div class="mt-6 flex justify-end">
+          <button class="px-4 py-2 rounded bg-gray-100 hover:bg-gray-200" data-close="policy">Entendido</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Crear Apuesta -->
+  <div id="createBetModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+    <div class="fixed inset-0 bg-black/60" data-close="create"></div>
+    <div id="modalContent" class="modal-enter bg-white rounded-xl shadow-2xl w-full max-w-lg z-10 overflow-hidden">
+      <form id="createBetForm" class="p-6 space-y-4" novalidate>
+        <h2 class="text-2xl font-bold">Crear apuesta</h2>
+        <p class="text-sm text-gray-500">Manténla segura, medible y con fecha de cierre.</p>
+
+        <div>
+          <label for="betTitle" class="block text-sm font-medium text-gray-700">Título</label>
+          <input id="betTitle" type="text" class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: ¿Lloverá >10mm en CDMX el 05/10/2025?" required maxlength="120">
+          <p class="mt-1 text-xs text-gray-400">Hasta 120 caracteres.</p>
+        </div>
+
+        <div>
+          <label for="betResolution" class="block text-sm font-medium text-gray-700">Criterio de resolución</label>
+          <textarea id="betResolution" rows="2" class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="Ej: Se valida con reporte diario de CONAGUA." required></textarea>
+        </div>
+
+        <div>
+          <label for="betSource" class="block text-sm font-medium text-gray-700">Fuente verificable (URL)</label>
+          <input id="betSource" type="url" class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" placeholder="https://..." required>
+        </div>
+
+        <div>
+          <label for="betClose" class="block text-sm font-medium text-gray-700">Fecha/hora de cierre</label>
+          <input id="betClose" type="datetime-local" class="mt-1 w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" required>
+        </div>
+
+        <div id="optionsContainer">
+          <label class="block text-sm font-medium text-gray-700">Opciones</label>
+          <div class="option-input-group mt-1 flex gap-2">
+            <input type="text" name="option" class="w-full border-gray-300 rounded-md shadow-sm" placeholder="Opción 1" required maxlength="50">
+          </div>
+          <div class="option-input-group mt-1 flex gap-2">
+            <input type="text" name="option" class="w-full border-gray-300 rounded-md shadow-sm" placeholder="Opción 2" required maxlength="50">
+          </div>
+          <button type="button" id="addOptionBtn" class="mt-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium">+ Añadir opción</button>
+          <p class="mt-1 text-xs text-gray-400">Mín. 2, máx. 6 opciones.</p>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-3">
+          <button type="button" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200" data-close="create">Cancelar</button>
+          <button type="submit" class="gradient-bg text-white font-bold px-4 py-2 rounded-lg">Publicar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Snackbar -->
+  <div id="snackbar" class="fixed bottom-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg opacity-0 transition-opacity duration-300">
+    Mensaje
+  </div>
+
+  <script type="module">
+    // --- Imports Firebase (se usarán sólo si hay configuración válida) ---
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import {
+      getFirestore, collection, addDoc, onSnapshot, doc, getDocs, updateDoc, query, orderBy, serverTimestamp,
+      runTransaction, enableIndexedDbPersistence, Timestamp, limit
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // ---- Configuración flexible: Firebase o Modo Local ----
+    const appId = (typeof window.__app_id !== 'undefined' ? window.__app_id : 'default-app-id');
+
+    let firebaseConfig = {};
+    try { firebaseConfig = JSON.parse(typeof window.__firebase_config !== 'undefined' ? window.__firebase_config : '{}'); } catch { firebaseConfig = {}; }
+    const useFirestore = !!(firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId);
+
+    let app, db, auth;
+    if (useFirestore) {
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      auth = getAuth(app);
+      try { await enableIndexedDbPersistence(db); } catch(e) { /* no-op */ }
+    }
+
+    // ---- Estado UI ----
+    let currentUser = null;
+    let showOnly = 'open'; // 'open' | 'closed'
+    let lastBetsCache = [];
+
+    const connStatus = document.getElementById('connStatus');
+    const snackbar = document.getElementById('snackbar');
+    const userIdEl = document.getElementById('userId');
+    const copyUserIdBtn = document.getElementById('copyUserId');
+
+    const loader = document.getElementById('loader');
+    const emptyState = document.getElementById('emptyState');
+    const betsContainer = document.getElementById('betsContainer');
+
+    const openModalBtn = document.getElementById('openModalBtn');
+    const policyBtn = document.getElementById('policyBtn');
+    const createBetModal = document.getElementById('createBetModal');
+    const policyModal = document.getElementById('policyModal');
+    const createBetForm = document.getElementById('createBetForm');
+    const addOptionBtn = document.getElementById('addOptionBtn');
+    const optionsContainer = document.getElementById('optionsContainer');
+
+    const showOpenBtn = document.getElementById('showOpen');
+    const showClosedBtn = document.getElementById('showClosed');
+
+    // ---- Utilidades ----
+    function showSnackbar(msg){ snackbar.textContent = msg; snackbar.classList.remove('opacity-0'); setTimeout(()=>snackbar.classList.add('opacity-0'), 2500); }
+    async function copyToClipboard(text){ try{ await navigator.clipboard.writeText(text); showSnackbar('Copiado'); }catch{ showSnackbar('No se pudo copiar'); } }
+
+    function sanitize(str){ return (str||'').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s])); }
+    function looksLikePrivatePerson(text){ return /\b[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\b/.test(text); }
+    function violatesPolicy(title){ const ban = /(matar|golpear|violencia|doxx|dirección|teléfono|sexo|enfermedad grave|linchar)/i; return ban.test(title) || looksLikePrivatePerson(title); }
+
+    function remainingTime(ts){
+      const now = Date.now();
+      const end = ts instanceof Date ? ts.getTime() : (ts?.toMillis?.() ?? (typeof ts === 'number' ? ts : (typeof ts === 'string' ? Date.parse(ts) : Date.now())));
+      const diff = Math.max(0, end - now);
+      const mins = Math.floor(diff/60000);
+      if (diff <= 0) return { closed:true, label:'Cerrada' };
+      if (mins < 60) return { closed:false, label: mins + ' min' };
+      const hrs = Math.floor(mins/60);
+      if (hrs < 48) return { closed:false, label: hrs + ' h' };
+      const days = Math.ceil(hrs/24);
+      return { closed:false, label: days + ' d' };
+    }
+    function asDate(ts){
+      if (!ts) return null;
+      if (ts?.toDate) return ts.toDate();
+      if (typeof ts === 'number') return new Date(ts);
+      if (typeof ts === 'string') return new Date(ts);
+      return ts;
+    }
+
+    // ---- Render ----
+    function renderBets(bets){
+      lastBetsCache = Array.isArray(bets) ? bets.slice() : [];
+      loader.classList.add('hidden');
+      betsContainer.innerHTML = '';
+
+      const now = Date.now();
+      const filtered = lastBetsCache.filter(b => {
+        const close = asDate(b.closesAt)?.getTime?.() ?? now;
+        const closed = now >= close;
+        return showOnly === 'open' ? !closed : closed;
+      });
+
+      if (!filtered.length){ emptyState.classList.remove('hidden'); return; }
+      emptyState.classList.add('hidden');
+
+      for (const bet of filtered){
+        const close = asDate(bet.closesAt);
+        const { closed, label } = remainingTime(close);
+        const totalVotes = (bet.options || []).reduce((s,o)=>s+(o.votes||0),0);
+        const userHasVoted = (bet.options || []).some(o => (o.voters||[]).includes(currentUser?.uid));
+
+        const card = document.createElement('article');
+        card.className = 'bg-white rounded-xl card-shadow overflow-hidden flex flex-col';
+
+        const titleEl = document.createElement('h3');
+        titleEl.className = 'text-xl font-bold text-gray-900 mb-1';
+        titleEl.textContent = bet.title || 'Apuesta';
+
+        const meta = document.createElement('p');
+        meta.className = 'text-xs text-gray-500 mb-3';
+        meta.textContent = 'Creador: ' + (bet.creatorId ? (String(bet.creatorId).substring(0,8) + '…') : '—');
+
+        const badge = document.createElement('span');
+        badge.className = 'inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ' + (closed ? 'bg-gray-100 text-gray-600' : 'bg-indigo-50 text-indigo-700');
+        badge.innerHTML = closed
+          ? '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="2" d="M6 12h12"/></svg> Cerrada'
+          : '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="2" d="M12 6v12m6-6H6"/></svg> ' + label;
+
+        const top = document.createElement('div');
+        top.className = 'p-6 pb-2';
+        top.appendChild(titleEl);
+        top.appendChild(meta);
+        top.appendChild(badge);
+
+        const list = document.createElement('div');
+        list.className = 'px-6 pt-2 pb-4 space-y-3';
+        (bet.options || []).forEach((opt, index) => {
+          const percentage = totalVotes>0 ? Math.round((opt.votes||0)*100/totalVotes) : 0;
+          const row = document.createElement('div');
+          const labelEl = document.createElement('div');
+          labelEl.className = 'flex justify-between items-center mb-1 text-sm';
+          const name = document.createElement('span');
+          name.className = 'font-medium text-gray-700';
+          name.textContent = opt.text;
+          const count = document.createElement('span');
+          count.className = 'text-gray-500';
+          count.textContent = (opt.votes||0) + ' voto(s)';
+          labelEl.appendChild(name); labelEl.appendChild(count);
+
+          const bar = document.createElement('div');
+          bar.className = 'w-full bg-gray-200 rounded-full h-2.5 overflow-hidden';
+          const fill = document.createElement('div');
+          fill.className = 'bg-indigo-600 h-2.5 rounded-full';
+          fill.style.width = percentage + '%';
+          bar.appendChild(fill);
+
+          row.appendChild(labelEl);
+          row.appendChild(bar);
+
+          if (!closed && !userHasVoted){
+            const btn = document.createElement('button');
+            btn.dataset.betId = bet.id;
+            btn.dataset.optionIndex = index;
+            btn.className = 'vote-btn mt-2 text-xs font-bold text-indigo-600 hover:underline';
+            btn.textContent = 'Votar por esta';
+            row.appendChild(btn);
+          }
+          list.appendChild(row);
+        });
+
+        const footer = document.createElement('div');
+        footer.className = 'bg-gray-50 px-6 py-3 flex items-center justify-between';
+        const idLabel = document.createElement('p');
+        idLabel.className = 'text-xs text-gray-500'; idLabel.textContent = 'ID:';
+        const copy = document.createElement('button');
+        copy.className = 'copy-bet-id-btn flex items-center gap-2 font-mono text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded hover:bg-indigo-100';
+        copy.dataset.betId = bet.id;
+        copy.innerHTML = '<span>'+ String(bet.id).substring(0,10) +'…</span><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z"/></svg>';
+
+        footer.appendChild(idLabel); footer.appendChild(copy);
+
+        const card = document.createElement('article');
+        card.className = 'bg-white rounded-xl card-shadow overflow-hidden flex flex-col';
+        card.appendChild(top);
+        card.appendChild(list);
+        card.appendChild(footer);
+
+        betsContainer.appendChild(card);
+      }
+    }
+
+    function openModal(el){ el.classList.remove('hidden'); el.classList.add('flex'); requestAnimationFrame(()=>{ const box = el.querySelector('.modal-enter'); box && box.classList.add('modal-enter-active'); }); }
+    function closeModal(el){ const box = el.querySelector('.modal-enter'); if (box){ box.classList.remove('modal-enter-active'); box.classList.add('modal-leave-active'); } setTimeout(()=>{ el.classList.add('hidden'); el.classList.remove('flex'); box && box.classList.remove('modal-leave-active'); }, 240); }
+
+    // ---- Data Adapters ----
+    function genId(n=20){ const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; let s=''; for(let i=0;i<n;i++){ s+=chars[Math.floor(Math.random()*chars.length)]; } return s; }
+
+    function firestoreAdapter(){
+      const betsPath = `/artifacts/${appId}/public/data/bets`;
+      const betsCol = collection(db, betsPath);
+      return {
+        async ensureSamples(creatorId){
+          try{
+            const snap = await getDocs(query(betsCol, limit(1)));
+            if (!snap.empty) return;
+            // crear muestras
+            const now = new Date();
+            const future1 = new Date(now.getTime() + 15*24*60*60*1000);
+            const future2 = new Date('2025-12-31T23:59:59');
+            const past = new Date(now.getTime() - 24*60*60*1000);
+            const sample = [
+              { title:"¿Quién ganará el próximo Clásico Nacional?", resolutionCriteria:"Resultado final del partido oficial de Liga MX entre Club América y Chivas.", resolutionSource:"https://www.ligamx.net/", closesAt: future1, options:[{text:"Club América",votes:5,voters:[]},{text:"Empate",votes:2,voters:[]},{text:"Chivas",votes:3,voters:[]}], creatorId: creatorId },
+              { title:"¿Se anunciará oficialmente GTA VII antes de 2026?", resolutionCriteria:"Anuncio oficial de Rockstar Games a través de sus canales verificados (sitio web, X/Twitter).", resolutionSource:"https://www.rockstargames.com/", closesAt: future2, options:[{text:"Sí, se anunciará",votes:8,voters:[]},{text:"No, se anunciará después",votes:4,voters:[]}], creatorId: creatorId },
+              { title:"¿Superó la CDMX los 25°C ayer?", resolutionCriteria:"Temperatura máxima registrada por el SMN para la Ciudad de México.", resolutionSource:"https://smn.conagua.gob.mx/", closesAt: past, options:[{text:"Sí, superó los 25°C",votes:10,voters:[]},{text:"No, se quedó por debajo",votes:6,voters:[]}], creatorId: creatorId }
+            ];
+            await Promise.all(sample.map(s => addDoc(betsCol, { ...s, createdAt: serverTimestamp() })));
+          }catch(e){ console.error('ensureSamples', e); }
+        },
+        subscribe(cb){
+          const qy = query(betsCol, orderBy('createdAt', 'desc'));
+          const unsub = onSnapshot(qy, snap => {
+            const bets = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+            cb(bets);
+          }, err => { console.error('onSnapshot', err); connStatus.textContent = 'Error de conexión'; connStatus.className = 'px-2 py-1 rounded border text-red-700 bg-red-50'; });
+          return unsub;
+        },
+        async addBet(payload){
+          await addDoc(betsCol, { ...payload, createdAt: serverTimestamp() });
+        },
+        async vote(betId, optionIndex, uid){
+          const betRef = doc(db, betsPath, betId);
+          await runTransaction(db, async (tx) => {
+            const snap = await tx.get(betRef);
+            if (!snap.exists()) throw new Error('No existe');
+            const data = snap.data();
+            const closesAt = data.closesAt?.toDate?.() ?? new Date();
+            if (Date.now() >= closesAt.getTime()) throw new Error('Cerrada');
+            if ((data.options||[]).some(o => (o.voters||[]).includes(uid))) throw new Error('Ya votaste');
+            if (!data.options?.[optionIndex]) throw new Error('Opción inválida');
+            const opts = data.options.map((o,i) => i===optionIndex ? { ...o, votes:(o.votes||0)+1, voters:[...(o.voters||[]), uid] } : o);
+            tx.update(betRef, { options: opts });
+          });
+        }
+      };
+    }
+
+    function localAdapter(){
+      const key = `alqsv2:${appId}:bets`;
+      let listeners = new Set();
+      function load(){ try{ return JSON.parse(localStorage.getItem(key) || '[]'); }catch{ return []; } }
+      function save(arr){ localStorage.setItem(key, JSON.stringify(arr)); }
+      function notify(){ const data = getAll(); listeners.forEach(cb => cb(data)); }
+      function getAll(){ const arr = load(); return arr.sort((a,b)=> (b.createdAt||0) - (a.createdAt||0)); }
+      window.addEventListener('storage', (e)=>{ if (e.key === key) notify(); });
+      return {
+        async ensureSamples(creatorId){
+          const current = load();
+          if (current.length) return;
+          const now = Date.now();
+          const sample = [
+            { id: genId(), title:"¿Quién ganará el próximo Clásico Nacional?", resolutionCriteria:"Resultado final del partido oficial de Liga MX entre Club América y Chivas.", resolutionSource:"https://www.ligamx.net/", closesAt: new Date(now + 15*24*60*60*1000).toISOString(), options:[{text:"Club América",votes:5,voters:[]},{text:"Empate",votes:2,voters:[]},{text:"Chivas",votes:3,voters:[]}], creatorId, createdAt: now },
+            { id: genId(), title:"¿Se anunciará oficialmente GTA VII antes de 2026?", resolutionCriteria:"Anuncio oficial de Rockstar Games a través de sus canales verificados (sitio web, X/Twitter).", resolutionSource:"https://www.rockstargames.com/", closesAt: new Date('2025-12-31T23:59:59').toISOString(), options:[{text:"Sí, se anunciará",votes:8,voters:[]},{text:"No, se anunciará después",votes:4,voters:[]}], creatorId, createdAt: now-1000 },
+            { id: genId(), title:"¿Superó la CDMX los 25°C ayer?", resolutionCriteria:"Temperatura máxima registrada por el SMN para la Ciudad de México.", resolutionSource:"https://smn.conagua.gob.mx/", closesAt: new Date(now - 24*60*60*1000).toISOString(), options:[{text:"Sí, superó los 25°C",votes:10,voters:[]},{text:"No, se quedó por debajo",votes:6,voters:[]}], creatorId, createdAt: now-2000 }
+          ];
+          save(sample);
+        },
+        subscribe(cb){ listeners.add(cb); cb(getAll()); return ()=>listeners.delete(cb); },
+        async addBet(payload){
+          const arr = load();
+          const id = genId();
+          arr.push({ id, ...payload, closesAt: new Date(payload.closesAt).toISOString(), createdAt: Date.now(), options: payload.options.map(o => ({...o, votes:o.votes||0, voters:o.voters||[]})) });
+          save(arr); notify();
+        },
+        async vote(betId, optionIndex, uid){
+          const arr = load();
+          const idx = arr.findIndex(b => b.id === betId);
+          if (idx === -1) throw new Error('No existe');
+          const b = arr[idx];
+          const close = Date.parse(b.closesAt);
+          if (Date.now() >= close) throw new Error('Cerrada');
+          if ((b.options||[]).some(o => (o.voters||[]).includes(uid))) throw new Error('Ya votaste');
+          if (!b.options?.[optionIndex]) throw new Error('Opción inválida');
+          b.options = b.options.map((o,i) => i===optionIndex ? { ...o, votes:(o.votes||0)+1, voters:[...(o.voters||[]), uid] } : o);
+          arr[idx] = b; save(arr); notify();
+        }
+      };
+    }
+
+    const Data = useFirestore ? firestoreAdapter() : localAdapter();
+
+    // ---- Auth + arranque ----
+    async function startApp(){
+      if (useFirestore){
+        onAuthStateChanged(auth, async (user) => {
+          if (user){
+            currentUser = user;
+            userIdEl.textContent = user.uid;
+            connStatus.textContent = 'Conectado a Firebase';
+            connStatus.className = 'px-2 py-1 rounded border text-green-700 bg-green-50';
+            try { await Data.ensureSamples(user.uid); } catch{}
+            Data.subscribe(renderBets);
+          } else {
+            try{ await signInAnonymously(auth); }
+            catch(e){ connStatus.textContent = 'Error de autenticación'; connStatus.className = 'px-2 py-1 rounded border text-red-700 bg-red-50'; document.getElementById('loader').innerHTML = '<p class="text-red-500">No se pudo conectar.</p>'; }
+          }
+        });
+      } else {
+        // Modo local
+        const stored = localStorage.getItem(`alqsv2:${appId}:uid`);
+        const uid = stored || `loc_${genId(16)}`;
+        if (!stored) localStorage.setItem(`alqsv2:${appId}:uid`, uid);
+        currentUser = { uid };
+        userIdEl.textContent = uid;
+        connStatus.textContent = 'Modo local (sin backend)';
+        connStatus.className = 'px-2 py-1 rounded border text-amber-700 bg-amber-50';
+        await Data.ensureSamples(uid);
+        Data.subscribe(renderBets);
+      }
+    }
+
+    await startApp();
+
+    // ---- Eventos globales ----
+    copyUserIdBtn.addEventListener('click', () => currentUser && copyToClipboard(currentUser.uid));
+    openModalBtn.addEventListener('click', ()=>openModal(createBetModal));
+    policyBtn.addEventListener('click', ()=>openModal(policyModal));
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-close]');
+      const c = btn?.getAttribute('data-close');
+      if (c === 'create') return closeModal(createBetModal);
+      if (c === 'policy') return closeModal(policyModal);
+    });
+
+    showOpenBtn.addEventListener('click', () => {
+      showOnly = 'open';
+      showOpenBtn.className = 'text-sm px-3 py-2 rounded bg-indigo-600 text-white';
+      showClosedBtn.className = 'text-sm px-3 py-2 rounded bg-gray-200 text-gray-700';
+      renderBets(lastBetsCache);
+    });
+    showClosedBtn.addEventListener('click', () => {
+      showOnly = 'closed';
+      showClosedBtn.className = 'text-sm px-3 py-2 rounded bg-indigo-600 text-white';
+      showOpenBtn.className = 'text-sm px-3 py-2 rounded bg-gray-200 text-gray-700';
+      renderBets(lastBetsCache);
+    });
+
+    // ---- Crear apuesta ----
+    addOptionBtn.addEventListener('click', () => {
+      const count = optionsContainer.querySelectorAll('input[name="option"]').length;
+      if (count >= 6){ showSnackbar('Máximo 6 opciones'); return; }
+      const div = document.createElement('div');
+      div.className = 'option-input-group mt-1 flex gap-2';
+      div.innerHTML = '<input type="text" name="option" class="w-full border-gray-300 rounded-md shadow-sm" placeholder="Opción '+(count+1)+'" required maxlength="50">';
+      optionsContainer.appendChild(div);
+    });
+
+    createBetForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser){ return showSnackbar('Reinicia sesión.'); }
+
+      const title = document.getElementById('betTitle').value.trim();
+      const resolution = document.getElementById('betResolution').value.trim();
+      const source = document.getElementById('betSource').value.trim();
+      const closeStr = document.getElementById('betClose').value;
+
+      const optionInputs = Array.from(document.querySelectorAll('input[name="option"]'));
+      let options = optionInputs.map(i => i.value.trim()).filter(Boolean);
+
+      if (violatesPolicy(title)){ return showSnackbar('Título inválido por políticas.'); }
+      if (!/^(https?:)\/\/.+/i.test(source)) return showSnackbar('URL inválida.');
+      if (!closeStr) return showSnackbar('Selecciona la fecha de cierre.');
+      const closesAt = new Date(closeStr);
+      if (!isFinite(closesAt.getTime())) return showSnackbar('Fecha inválida.');
+      if (closesAt.getTime() <= Date.now()) return showSnackbar('La fecha de cierre debe ser futura.');
+
+      const seen = new Set();
+      options = options.filter(opt => { const key = opt.toLowerCase(); if (seen.has(key)) return false; seen.add(key); return true; });
+      if (options.length < 2) return showSnackbar('Mínimo 2 opciones únicas.');
+
+      const payload = {
+        title: title.substring(0,120),
+        resolutionCriteria: resolution,
+        resolutionSource: source,
+        closesAt: closesAt,
+        options: options.map(t => ({ text: t.substring(0,50), votes: 0, voters: [] })),
+        creatorId: currentUser.uid
+      };
+
+      try{
+        await Data.addBet(payload);
+        closeModal(createBetModal);
+        showSnackbar('Apuesta publicada');
+        createBetForm.reset();
+      }catch(err){ console.error(err); showSnackbar('Error al publicar'); }
+    });
+
+    // ---- Votar ----
+    betsContainer.addEventListener('click', async (e) => {
+      const voteBtn = e.target.closest('.vote-btn');
+      const copyBtn = e.target.closest('.copy-bet-id-btn');
+
+      if (copyBtn){ return copyToClipboard(copyBtn.dataset.betId); }
+      if (!voteBtn) return;
+      if (!currentUser) return showSnackbar('Inicia sesión para votar.');
+
+      const betId = voteBtn.dataset.betId;
+      const optionIndex = parseInt(voteBtn.dataset.optionIndex,10);
+
+      try{
+        await Data.vote(betId, optionIndex, currentUser.uid);
+        showSnackbar('Voto registrado');
+      }catch(err){
+        const msg = (''+err.message);
+        if (msg.includes('Cerrada')) return showSnackbar('La apuesta ya está cerrada.');
+        if (msg.includes('Ya votaste')) return showSnackbar('Solo un voto por usuario.');
+        if (msg.includes('Opción inválida')) return showSnackbar('Opción inválida.');
+        showSnackbar('No se pudo votar');
+      }
+    });
+
+    // Cerrar modales al presionar ESC
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape'){
+        if (!createBetModal.classList.contains('hidden')) closeModal(createBetModal);
+        if (!policyModal.classList.contains('hidden')) closeModal(policyModal);
+      }
+    });
+  </script>
+</body>
+</html>
