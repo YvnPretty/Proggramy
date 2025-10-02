@@ -1,0 +1,9 @@
+{
+  "name": "proggramy-pos-demo",
+  "version": "0.3.0",
+  "description": "Demo de POS con frontend interactivo y API en vivo",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  }
+}
