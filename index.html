@@ -3,82 +3,369 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi Página Personal</title>
+  <title>Sistema POS Inteligente para Restaurantes</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f6f8fb;
+      --fg: #1f2933;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --card: #ffffff;
+      --border: #d9e2ec;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.9), rgba(79, 70, 229, 0.9)), url('https://images.unsplash.com/photo-1543353071-10c8ba85a904?auto=format&fit=crop&w=1600&q=80') center/cover;
+      color: #fff;
+      padding: 3.5rem 1.5rem 4.5rem;
+      text-align: center;
+      position: relative;
+    }
+
+    header::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(31, 41, 55, 0.45);
+    }
+
+    header > div {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-bottom: 1rem;
+      letter-spacing: -0.02em;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      margin: 0 auto 2rem;
+      max-width: 720px;
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: #fff;
+      padding: 0.65rem 1.1rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    nav a:hover,
+    nav a:focus {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    main {
+      max-width: 980px;
+      margin: -2.5rem auto 4rem;
+      padding: 0 1.5rem;
+    }
+
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 2.5rem 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+    }
+
+    section h2 {
+      margin-top: 0;
+      font-size: 1.75rem;
+    }
+
+    .tagline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 0.4rem 0.85rem;
+      border-radius: 999px;
+      margin-bottom: 0.8rem;
+    }
+
+    ul, ol {
+      padding-left: 1.1rem;
+    }
+
+    ul li + li,
+    ol li + li {
+      margin-top: 0.35rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .grid-roles {
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      background: linear-gradient(180deg, rgba(219, 234, 254, 0.3), rgba(255, 255, 255, 0.9));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.75rem;
+      font-size: 1.2rem;
+    }
+
+    .flow-step {
+      border-left: 4px solid var(--accent);
+      padding-left: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .flow-step h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1.15rem;
+    }
+
+    .timeline {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .kpi-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+
+    .kpi-card {
+      padding: 1.25rem;
+      border-radius: 16px;
+      background: rgba(37, 99, 235, 0.08);
+      border: 1px solid rgba(37, 99, 235, 0.15);
+    }
+
+    .highlight {
+      background: rgba(16, 185, 129, 0.12);
+      border-left: 4px solid #10b981;
+      padding: 1rem 1.25rem;
+      border-radius: 14px;
+      margin-top: 1.25rem;
+    }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1.5rem 3rem;
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 640px) {
+      header {
+        padding: 2.75rem 1.25rem 3.5rem;
+      }
+
+      section {
+        padding: 2rem 1.5rem;
+      }
+    }
+  </style>
 </head>
 <body>
   <header>
-    <h1>Sobre Mí</h1>
-    <nav aria-label="Navegación principal">
-      <ul>
-        <li><a href="#presentacion">Presentación</a></li>
-        <li><a href="#gustos">Gustos</a></li>
-        <li><a href="#galeria">Galería</a></li>
-        <li><a href="#materias">Materias</a></li>
-      </ul>
-    </nav>
+    <div>
+      <span class="tagline" aria-label="Sistema generado con apoyo de IA">🤖 Basado en agentes inteligentes</span>
+      <h1>Sistema POS Inteligente para Restaurantes</h1>
+      <p>
+        Plataforma integral que digitaliza la operación del restaurante, automatiza procesos con N8N y ofrece control total
+        en tiempo real para meseros, cajeros y gerentes.
+      </p>
+      <nav aria-label="Secciones principales">
+        <a href="#objetivos">Objetivos</a>
+        <a href="#roles">Roles y accesos</a>
+        <a href="#flujo">Flujo POS</a>
+        <a href="#dashboard">Dashboard</a>
+        <a href="#n8n">Automatización N8N</a>
+        <a href="#tecnologias">Tecnologías</a>
+      </nav>
+    </div>
   </header>
 
   <main>
-    <article aria-labelledby="presentacion">
-      <h2 id="presentacion">Presentación</h2>
-      <p>
-        Soy un programador con experiencia en HTML, C++ y Python.
-        Me considero una persona muy competitiva, siempre buscando superar
-        nuevos desafíos y mejorar mis habilidades.
-      </p>
-    </article>
-
-    <section aria-labelledby="gustos">
-      <h2 id="gustos">Cosas que me Gustan</h2>
+    <section id="objetivos" aria-labelledby="objetivos-titulo">
+      <h2 id="objetivos-titulo">Objetivos principales del sistema <span class="timeline">[00:35]</span></h2>
       <ul>
-        <li>Programar en C++</li>
-        <li>Desarrollar en Python</li>
-        <li>Crear sitios web con HTML</li>
-        <li>La competencia sana</li>
-        <li>Resolver problemas complejos</li>
+        <li><strong>Digitalizar y optimizar:</strong> transformar procesos manuales en flujos digitales eficientes.</li>
+        <li><strong>Eficiencia y control:</strong> acelerar la operación y habilitar supervisión total del negocio.</li>
+        <li><strong>Rentabilidad:</strong> mejorar el desempeño y la utilidad de los restaurantes asociados.</li>
       </ul>
     </section>
 
-    <section aria-labelledby="galeria">
-      <h2 id="galeria">Galería de Imágenes</h2>
-      <p>Aquí algunas imágenes de ejemplo:</p>
-      <figure>
-        <img src="C:\Users\fktra\OneDrive\Documents\Downloads\Tipos de medios de transmisión Guiados y No guiados.png" alt="Diagrama de medios de transmisión">
-      </figure>
-      <figure>
-        <img src="https://picsum.photos/300/200?random=2" alt="Imagen aleatoria 2">
-      </figure>
-      <figure>
-        <img src="https://picsum.photos/300/200?random=3" alt="Imagen aleatoria 3">
-      </figure>
+    <section id="roles" aria-labelledby="roles-titulo">
+      <h2 id="roles-titulo">Roles y accesos <span class="timeline">[00:50]</span></h2>
+      <p>Cada rol accede con un PIN de 4 dígitos y dispone de permisos acordes a sus responsabilidades.</p>
+      <div class="grid grid-roles" role="list">
+        <article class="card" role="listitem">
+          <h3>Mesero</h3>
+          <p>Gestiona la toma de pedidos directamente desde el mapa de mesas y envía las órdenes a cocina.</p>
+        </article>
+        <article class="card" role="listitem">
+          <h3>Cajero</h3>
+          <p>Administra cobros, métodos de pago, cálculo de propinas, descuentos y cierre de caja sin errores.</p>
+        </article>
+        <article class="card" role="listitem">
+          <h3>Gerente / Dueño</h3>
+          <p>Supervisa la operación, recibe alertas críticas y analiza indicadores en tiempo real desde el dashboard.</p>
+        </article>
+      </div>
     </section>
 
-    <section aria-labelledby="materias">
-      <h2 id="materias">Materias Cursadas</h2>
-      <table>
-        <caption>Lista de materias cursadas</caption>
-        <thead>
-          <tr>
-            <th scope="col">Materia</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>Cálculo Integral</td></tr>
-          <tr><td>Cálculo Vectorial</td></tr>
-          <tr><td>Cálculo Diferencial</td></tr>
-          <tr><td>Ecuaciones Diferenciales</td></tr>
-          <tr><td>Álgebra Lineal</td></tr>
-        </tbody>
-      </table>
+    <section id="flujo" aria-labelledby="flujo-titulo">
+      <h2 id="flujo-titulo">Flujo de operación del POS</h2>
+
+      <div class="flow-step">
+        <h3>Gestión de mesas <span class="timeline">[01:00 - 01:21]</span></h3>
+        <ul>
+          <li>Mapa interactivo con estados visuales: <strong>rojo</strong> (ocupada), <strong>verde</strong> (disponible), <strong>amarillo</strong> (reservada).</li>
+          <li>Asignación rápida ingresando el número de comensales al seleccionar una mesa libre.</li>
+        </ul>
+      </div>
+
+      <div class="flow-step">
+        <h3>Toma de pedidos <span class="timeline">[01:31 - 02:11]</span></h3>
+        <ul>
+          <li>Interfaz dividida en categorías (izquierda), productos seleccionados (centro) y resumen (derecha).</li>
+          <li>Cálculos automáticos de subtotal, impuestos, propina voluntaria y total.</li>
+          <li>Botón <em>Enviar a cocina</em> que valida productos, calcula montos y registra el pedido como <strong>pendiente</strong>.</li>
+        </ul>
+      </div>
+
+      <div class="flow-step">
+        <h3>Gestión de pagos <span class="timeline">[02:49 - 04:06]</span></h3>
+        <ul>
+          <li>Pantalla exclusiva con métodos: efectivo, tarjeta débito/crédito y QR.</li>
+          <li>Campos para propina configurable y descuentos promocionales.</li>
+          <li>Verificación automática del monto pagado y cálculo del cambio.</li>
+          <li>Finalización del pago que libera la mesa e imprime factura/recibo.</li>
+        </ul>
+      </div>
     </section>
-    <aside aria-labelledby="extra">
-      <h2 id="extra">Información Complementaria</h2>
-      <p>Contacto: ejemplo@correo.com</p>
-    </aside>
+
+    <section id="dashboard" aria-labelledby="dashboard-titulo">
+      <h2 id="dashboard-titulo">Centro de control para dueños <span class="timeline">[04:39 - 05:35]</span></h2>
+      <p>
+        Dashboard responsive accesible desde móvil con indicadores en tiempo real. La base del código fue generada con apoyo de IA
+        y optimizada para integrarse con agentes de N8N.
+      </p>
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <h3>Ventas actuales</h3>
+          <p>Monitoreo minuto a minuto del desempeño diario y comparación con objetivos.</p>
+        </div>
+        <div class="kpi-card">
+          <h3>Top productos</h3>
+          <p>Ranking por categoría que ayuda a ajustar promociones e inventario.</p>
+        </div>
+        <div class="kpi-card">
+          <h3>Horas pico</h3>
+          <p>Visualización interactiva de la demanda para optimizar turnos y staffing.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="n8n" aria-labelledby="n8n-titulo">
+      <h2 id="n8n-titulo">N8N: el cerebro digital <span class="timeline">[05:55 - 12:31]</span></h2>
+      <p>
+        La automatización se estructura como departamentos virtuales que se ejecutan en N8N Cloud o en despliegues on-premise.
+        Cada agente opera mediante flujos programados, webhooks y nodos de código para mantener el negocio activo 24/7.
+      </p>
+
+      <div class="flow-step">
+        <h3>Sistema de turnos inteligente <span class="timeline">[06:11]</span></h3>
+        <ul>
+          <li>Se ejecuta cada 15 minutos y revisa asistencia, tardanzas o ausencias.</li>
+          <li>Envía alertas por correo a gerencia cuando detecta incidencias.</li>
+        </ul>
+      </div>
+
+      <div class="flow-step">
+        <h3>Control de inventario <span class="timeline">[06:49 - 07:04]</span></h3>
+        <ul>
+          <li>Monitoreo periódico del stock de ingredientes y suministros.</li>
+          <li>Generación automática de reportes con niveles críticos enviados por email.</li>
+        </ul>
+      </div>
+
+      <div class="flow-step">
+        <h3>Agentes de respuesta instantánea <span class="timeline">[07:18 - 09:08]</span></h3>
+        <ul>
+          <li><strong>APIs del POS:</strong> gestión de funciones centrales y sincronización de datos.</li>
+          <li><strong>API de menú:</strong> responde a webhooks con consulta de productos y sincronización con el POS.</li>
+          <li><strong>Agente de pedidos:</strong> calcula totales, obtiene precios y registra órdenes con detalle.</li>
+          <li><strong>Agente de pagos:</strong> marca pedidos pagados y registra movimientos en la tabla de pagos.</li>
+          <li><strong>APIs del dashboard:</strong> cada gráfico solicita datos a través de webhooks dedicados.</li>
+        </ul>
+      </div>
+
+      <div class="flow-step">
+        <h3>Agente de cierre inteligente <span class="timeline">[09:52 - 12:04]</span></h3>
+        <ul>
+          <li>Se ejecuta diariamente (ej. 22:00) recopilando ventas, gastos, pagos y órdenes.</li>
+          <li>Nodo de código que empaqueta la información y solicita análisis estratégico a una IA externa.</li>
+          <li>Genera un informe visual con cierre de caja, rendimiento por empleado, producto estrella y alertas críticas.</li>
+        </ul>
+        <div class="highlight">
+          <strong>Operación continua:</strong> gracias a N8N Cloud, los procesos funcionan incluso si los equipos locales están apagados.
+        </div>
+      </div>
+    </section>
+
+    <section id="tecnologias" aria-labelledby="tecnologias-titulo">
+      <h2 id="tecnologias-titulo">Tecnologías implicadas</h2>
+      <ul>
+        <li><strong>Front-end:</strong> dashboard generado con soporte de IA y optimizado para acceso móvil.</li>
+        <li><strong>Automatización:</strong> flujos orquestados en N8N (Cloud u on-premise).</li>
+        <li><strong>Base de datos:</strong> repositorio central para pedidos, productos, inventario, pagos y personal.</li>
+        <li><strong>Inteligencia artificial:</strong> análisis estratégico del reporte de cierre diario.</li>
+        <li><strong>Comunicación:</strong> webhooks para APIs del POS y dashboard, más correo electrónico para alertas y reportes.</li>
+      </ul>
+    </section>
   </main>
 
   <footer>
-    <p>© 2025 Mi Página Personal</p>
+    <p>© 2025 Sistema POS Inteligente · Documentación resumida del flujo operativo y automatización.</p>
   </footer>
 </body>
 </html>
