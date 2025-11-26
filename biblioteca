@@ -1,0 +1,114 @@
+<?php
+declare(strict_types=1);
+
+$err = ['c' => '', 'd' => '', 'm' => ''];
+$old = ['c' => '', 'd' => '', 'm' => ''];
+$res = null;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $old['c'] = $_POST['cantidad_libros'] ?? '';
+    $old['d'] = $_POST['dias_retraso'] ?? '';
+    $old['m'] = $_POST['mismo_dia'] ?? '';
+
+    if ($old['c'] === '' || !ctype_digit($old['c'])) $err['c'] = 'Número inválido.';
+    if ($old['d'] === '' || !ctype_digit($old['d'])) $err['d'] = 'Número inválido.';
+    if ($old['m'] !== 's' && $old['m'] !== 'n') $err['m'] = 'Selecciona una opción.';
+
+    if (!array_filter($err)) {
+        $c = (int)$old['c'];
+        $d = (int)$old['d'];
+
+        $base = $c * 5;
+        $rec = $c * $d * 2;
+        $sub = $base + $rec;
+        $desc = $old['m'] === 's' ? $sub * .20 : 0;
+        $tot = $sub - $desc;
+
+        $res = [
+            'base' => number_format($base, 2, '.', ','),
+            'rec'  => number_format($rec, 2, '.', ','),
+            'sub'  => number_format($sub, 2, '.', ','),
+            'desc' => number_format($desc, 2, '.', ','),
+            'tot'  => number_format($tot, 2, '.', ','),
+        ];
+    }
+}
+?>
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multas</title>
+<style>
+*{box-sizing:border-box;font-family:Inter,Arial}
+body{margin:0;background:#f6fbff;display:flex;justify-content:center;padding:20px}
+.card{background:#fff;width:100%;max-width:650px;padding:22px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.06)}
+h1{margin:0 0 10px;font-size:20px}
+p{margin:0 0 16px;color:#666;font-size:14px}
+input[type=number]{width:100%;padding:10px;border:1px solid #dce6f5;border-radius:8px;font-size:15px;outline:0}
+input:focus{border-color:#0b66d0;box-shadow:0 0 0 3px rgba(11,102,208,.15)}
+.grid{display:grid;gap:14px}
+@media(min-width:600px){.grid{grid-template-columns:1fr 1fr}}
+.err{color:#d62828;font-size:13px;margin-top:4px}
+.radios{display:flex;gap:10px;margin-top:4px}
+.radios label{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid #dce6f5;border-radius:50px;cursor:pointer;font-size:14px}
+.btns{display:flex;gap:10px;margin-top:14px;justify-content:flex-end}
+button{padding:10px 14px;border-radius:8px;border:0;font-weight:600;cursor:pointer}
+.primary{background:#0b66d0;color:#fff}
+.secondary{background:#eef3ff;color:#0b2b5a}
+.result{margin-top:16px;padding:14px;border-radius:10px;background:#f0f5ff;border:1px solid #dce6f5;animation:fade .25s}
+.line{display:flex;justify-content:space-between;padding:4px 0;font-size:15px}
+.total{font-weight:700;font-size:17px;border-top:1px solid #dce6f5;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between}
+@keyframes fade{0%{opacity:0;transform:scale(.96)}100%{opacity:1;transform:scale(1)}}
+</style>
+</head>
+<body>
+<div class="card">
+    <h1>Calculadora de Multas</h1>
+    <p>Introduce los datos y obtén el total.</p>
+
+    <form method="post" novalidate>
+        <div class="grid">
+            <div>
+                <label>Libros</label>
+                <input type="number" name="cantidad_libros" value="<?=htmlspecialchars($old['c'])?>" min="0">
+                <?php if($err['c']): ?><div class="err"><?=$err['c']?></div><?php endif; ?>
+            </div>
+
+            <div>
+                <label>Días de retraso</label>
+                <input type="number" name="dias_retraso" value="<?=htmlspecialchars($old['d'])?>" min="0">
+                <?php if($err['d']): ?><div class="err"><?=$err['d']?></div><?php endif; ?>
+            </div>
+        </div>
+
+        <div style="margin-top:14px">
+            <label>¿Devuelves hoy?</label>
+            <div class="radios">
+                <label><input type="radio" name="mismo_dia" value="s" <?=$old['m']==='s'?'checked':''?>> Sí</label>
+                <label><input type="radio" name="mismo_dia" value="n" <?=$old['m']==='n'?'checked':''?>> No</label>
+            </div>
+            <?php if($err['m']): ?><div class="err"><?=$err['m']?></div><?php endif; ?>
+        </div>
+
+        <div class="btns">
+            <button type="reset" class="secondary">Limpiar</button>
+            <button type="submit" class="primary">Calcular</button>
+        </div>
+
+        <?php if($res): ?>
+        <div class="result">
+            <div class="line"><span>Multa base</span><strong>$<?=$res['base']?></strong></div>
+            <div class="line"><span>Recargo</span><strong>$<?=$res['rec']?></strong></div>
+            <div class="line"><span>Subtotal</span><strong>$<?=$res['sub']?></strong></div>
+            <?php if($res['desc'] > 0): ?>
+            <div class="line"><span>Descuento (20%)</span><strong>-$<?=$res['desc']?></strong></div>
+            <?php endif; ?>
+            <div class="total"><span>Total</span><span>$<?=$res['tot']?></span></div>
+        </div>
+        <?php endif; ?>
+    </form>
+</div>
+</body>
+</html>
